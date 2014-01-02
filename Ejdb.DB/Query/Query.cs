@@ -49,10 +49,15 @@ namespace Ejdb.DB
             return _BinaryQuery("$begin", fieldName, value);
         }
 
-        public static IQuery EndsWith(string fieldName, string value)
+		public static IQuery StringMatchesAllTokens(string fieldName, params string[] values)
         {
-            return _BinaryQuery("end", fieldName, value);
+			return _BinaryQuery("$strand", fieldName, values);
         }
+
+		public static IQuery StringMatchesAnyTokens(string fieldName, params string[] values)
+		{
+			return _BinaryQuery("$stror", fieldName, values);
+		}
 
         public static IQuery GT(string fieldName, object value)
         {
