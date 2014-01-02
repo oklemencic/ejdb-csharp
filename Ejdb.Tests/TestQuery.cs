@@ -10,7 +10,10 @@ namespace Ejdb.Tests
     public class TestQuery
     {
         private EJDB _db;
-        private const string COLLECTION_NAME = "results";
+	    private BsonDocument _person1;
+	    private BsonDocument _person2;
+
+		private const string COLLECTION_NAME = "results";
 
         [TestFixtureSetUp]
         public void Setup()
@@ -30,6 +33,14 @@ namespace Ejdb.Tests
             }
 
             _db.Save(COLLECTION_NAME, results);
+
+			_person1 = new BsonDocument()
+				.Add("likes", new[] { "apple", "peach", "grapefruit" });
+
+			_person2 = new BsonDocument()
+				.Add("likes", new[] { "apple", "peach", "mango" });
+
+			_db.Save(COLLECTION_NAME, _person1, _person2);
         }
 
          [Test]
@@ -44,8 +55,8 @@ namespace Ejdb.Tests
              _QueryResults(10, Query.EQ("OpticalRotation", 5));
              _QueryResults(10, Query<MeasurementResult>.EQ(x => x.OpticalRotation, 5));
 
-             _QueryResults(99, Query.NotEquals("MeasuredTemperature", 5));
-             _QueryResults(99, Query<MeasurementResult>.NotEquals(x => x.MeasuredTemperature, 5));
+             _QueryResults(101, Query.NotEquals("MeasuredTemperature", 5));
+			 _QueryResults(101, Query<MeasurementResult>.NotEquals(x => x.MeasuredTemperature, 5));
 
              _QueryResults(5, Query.LT("MeasuredTemperature", 5));
              _QueryResults(5, Query<MeasurementResult>.LT(x => x.MeasuredTemperature, 5));
@@ -59,9 +70,8 @@ namespace Ejdb.Tests
              _QueryResults(2, Query.In("MeasuredTemperature", 47, 85));
              _QueryResults(2, Query<MeasurementResult>.In(x => x.MeasuredTemperature, 47, 85));
 
-             _QueryResults(98, Query.NotIn("MeasuredTemperature", 47, 85));
-             _QueryResults(98, Query<MeasurementResult>.NotIn(x => x.MeasuredTemperature, 47, 85));
-
+             _QueryResults(100, Query.NotIn("MeasuredTemperature", 47, 85));
+			 _QueryResults(100, Query<MeasurementResult>.NotIn(x => x.MeasuredTemperature, 47, 85));
          }
 
 	    [Test]
@@ -106,56 +116,56 @@ namespace Ejdb.Tests
 	    public void StringMatchesAny_WithStringField()
 	    {
 			_QueryResults(1, Query.StringMatchesAnyTokens("UserName", "test47"));
+			_QueryResults(1, Query<MeasurementResult>.StringMatchesAnyTokens(x => x.UserName, "test47"));
 			_QueryResults(2, Query.StringMatchesAnyTokens("UserName", "test47", "test49"));
-
+			_QueryResults(2, Query<MeasurementResult>.StringMatchesAnyTokens(x => x.UserName, "test47", "test49"));
 	    }
 
 	    [Test]
 		public void StringMatchesAll_WithStringField()
 	    {
-			_QueryResults(0, Query.StringMatchesAllTokens("UserName", "test47", "test49"));
 			_QueryResults(1, Query.StringMatchesAllTokens("UserName", "test47"));
+			_QueryResults(1, Query<MeasurementResult>.StringMatchesAllTokens(x => x.UserName, "test47"));
+
+			_QueryResults(0, Query.StringMatchesAllTokens("UserName", "test47", "test49"));
+			_QueryResults(0, Query<MeasurementResult>.StringMatchesAllTokens(x => x.UserName, "test47", "test49"));
 	    }
 
 		[Test]
 		public void StringMatchesAny_WithArrayField()
 		{
-			var doc1 = new BsonDocument()
-				.Add("likes", new[] { "apple", "peach", "grapefruit" });
-
-			var doc2 = new BsonDocument()
-				.Add("likes", new[] { "apple", "peach", "mango" });
-
-			_db.Save(COLLECTION_NAME, doc1, doc2);
-
 			_QueryResults(2, Query.StringMatchesAnyTokens("likes", "apple"));
+			_QueryResults(2, Query<Person>.StringMatchesAnyTokens(x => x.likes, "apple"));
 			_QueryResults(2, Query.StringMatchesAnyTokens("likes", "apple", "peach"));
+			_QueryResults(2, Query<Person>.StringMatchesAnyTokens(x => x.likes, "apple", "peach"));
 
 			var results1 = _QueryResults(1, Query.StringMatchesAnyTokens("likes", "grapefruit"));
-			Assert.IsTrue(results1.Single().Equals(doc1));
+			Assert.IsTrue(results1.Single().Equals(_person1));
 
 			var results2 = _QueryResults(1, Query.StringMatchesAnyTokens("likes", "mango"));
-			Assert.IsTrue(results2.Single().Equals(doc2));
+			Assert.IsTrue(results2.Single().Equals(_person2));
 		}
 
 		[Test]
 		public void StringMatchesAll_WithArrayField()
 		{
-			var doc1 = new BsonDocument()
-				.Add("likes", new[] { "apple", "peach", "grapefruit" });
-
-			var doc2 = new BsonDocument()
-				.Add("likes", new[] { "apple", "peach", "mango" });
-
-			_db.Save(COLLECTION_NAME, doc1, doc2);
-
 			_QueryResults(2, Query.StringMatchesAllTokens("likes", "peach"));
+			_QueryResults(2, Query<Person>.StringMatchesAllTokens(x => x.likes, "peach"));
 			
 			// why do these checks fail?
 			// _QueryResults(2, Query.StringMatchesAllTokens("likes", "apple", "peach"));
 			// _QueryResults(1, Query.StringMatchesAllTokens("likes", "apple", "peach", "grapefruit"));
-			
 		}
+
+	    [Test]
+	    public void Exists_NotExists()
+	    {
+			_QueryResults(2, Query.Exists("likes"));
+			_QueryResults(2, Query<Person>.Exists(x => x.likes));
+
+			_QueryResults(100, Query.NotExists("likes"));
+			_QueryResults(100, Query<Person>.NotExists(x => x.likes));
+	    }
 
          private BsonDocument[] _QueryResults(int expectedResultCount, IQuery query)
          {
@@ -169,6 +179,7 @@ namespace Ejdb.Tests
 
              return results;
          }
+
     }
 
     internal class Customer
@@ -185,4 +196,10 @@ namespace Ejdb.Tests
         public int OpticalRotation { get; set; }
         public string UserName { get; set; }
     }
+
+	internal class Person
+	{
+		public BsonOid _id { get; set; }
+		public string[] likes { get; set; }
+	}
 }

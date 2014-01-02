@@ -45,7 +45,19 @@ namespace Ejdb.DB
 			return Query.StringMatchesAllTokens(fieldName, values);
 		}
 
+		public static IQuery StringMatchesAllTokens(Expression<Func<TDocument, string[]>> memberExpression, params string[] values)
+		{
+			var fieldName = _GetFieldName(memberExpression);
+			return Query.StringMatchesAllTokens(fieldName, values);
+		}
+
 		public static IQuery StringMatchesAnyTokens(Expression<Func<TDocument, string>> memberExpression, params string[] values)
+		{
+			var fieldName = _GetFieldName(memberExpression);
+			return Query.StringMatchesAnyTokens(fieldName, values);
+		}
+
+		public static IQuery StringMatchesAnyTokens(Expression<Func<TDocument, string[]>> memberExpression, params string[] values)
 		{
 			var fieldName = _GetFieldName(memberExpression);
 			return Query.StringMatchesAnyTokens(fieldName, values);
